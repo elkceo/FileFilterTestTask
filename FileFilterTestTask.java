@@ -11,8 +11,8 @@ public class FileFilterTestTask {
         String outputFile2 = "output2.txt";
 
         try {
-            writeTestFile(inputFile1, new String[]{"apple", "banana", "cherry"});
-            writeTestFile(inputFile2, new String[]{"banana", "cherry", "date"});
+//            writeTestFile(inputFile1, new String[]{"banana", "cherry", "apple"});
+//            writeTestFile(inputFile2, new String[]{"banana", "cherry", "date"});
 
             Set<String> set1 = readFileIntoSet(inputFile1);
             Set<String> set2 = readFileIntoSet(inputFile2);
@@ -29,15 +29,45 @@ public class FileFilterTestTask {
         }
     }
 
-    private static Set<String> readFileIntoSet(String filePath) throws IOException {
+    private static Set<String> readFileIntoSet(String filePath) {
         Set<String> set = new HashSet<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            String line;
+        BufferedReader reader = getBufferedReader(filePath);
+        String line;
+        try {
             while ((line = reader.readLine()) != null) {
                 set.add(line);
             }
+        } catch (IOException e) {
+            throw new RuntimeException("Unexpected error within reading file: " + filePath, e);
+        } catch (OutOfMemoryError e) {
+            throw new OutOfMemoryError(filePath + " is too large to fit in memory");
         }
         return set;
+    }
+
+    private static BufferedReader getBufferedReader(String filePath) {
+        try {
+            return new BufferedReader(new FileReader(validateFile(filePath)));
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException("File not found: " + filePath, e);
+        }
+    }
+
+    private static File validateFile(String filePath) {
+        File file = new File(filePath);
+        if (file.length() == 0) {
+            throw new IllegalArgumentException(filePath + " is empty");
+        }
+        if (!filePath.endsWith(".txt")) {
+            throw new IllegalArgumentException(filePath + " is not a .txt file");
+        }
+        if (!file.canRead()) {
+            throw new IllegalArgumentException(filePath + " cannot be read");
+        }
+        if (!file.isFile()) {
+            throw new IllegalArgumentException(filePath + " is not a file");
+        }
+        return file;
     }
 
     private static void writeDifference(Set<String> set1, Set<String> set2, String outputFile) throws IOException {
